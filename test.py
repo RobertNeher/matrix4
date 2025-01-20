@@ -3,7 +3,7 @@ import flet.canvas as cv
 
 import time
 from enum import Flag, auto
-
+from math import pi, cos, sin
 
 def main(page: ft.Page):
     class TILT(Flag):
@@ -26,20 +26,18 @@ def main(page: ft.Page):
     RIGHT_HANDED_KEYS  = ["i", "k", "j", "l"]
 #
 # 3D movement in combination with keys above
-#   <Ctrl>: Tilt
-#   <Shift>: Scale
+#   <key>: Roll
+#   <Ctrl><key>: Yaw
+#   <Shift><key>: Translate
 #
-    size=750 # Drawing area x and y
+    size=750
+    deltaX = deltaY = deltaZ = pi / 24
+    rotationX = rotationY = rotationZ = 0
+
     keySet = RIGHT_HANDED_KEYS
 
-    def onPanUpdate(e: ft.DragUpdateEvent):
-        print("P", e.delta_x, e.delta_y)
-        drawArea.top = max(0, drawArea.top + e.delta_y)
-        drawArea.left = max(0, drawArea.left + e.delta_x)
-        e.control.update()
-
-    def onDragUpdate(e: ft.DragUpdateEvent):
-        print("D", e.delta_x, e.delta_y)
+    def onRotate(e: ft.DragUpdateEvent):
+        print("R", e.delta_x, e.delta_y)
         drawArea.top = max(0, drawArea.top + e.delta_y)
         drawArea.left = max(0, drawArea.left + e.delta_x)
         e.control.update()
@@ -49,8 +47,8 @@ def main(page: ft.Page):
 
     def onKey(e: ft.KeyboardEvent):
         if not e.ctrl and e.key.lower() == keySet[0]:
-            # Pan(direction=PAN.UP)
-            print("Pan up")
+            # Rotate around y-axis counter clockwise
+            print("Rotate y left")
         elif not e.ctrl and e.key.lower() ==  keySet[1]:
             # Pan(direction=PAN.DOWN)
             print("Pan down")
@@ -80,25 +78,32 @@ def main(page: ft.Page):
 
     gd = ft.GestureDetector(
         mouse_cursor=ft.MouseCursor.MOVE,
-        on_pan_update=onPanUpdate,
-        on_horizontal_drag_update=onDragUpdate,
-        on_vertical_drag_update=onDragUpdate,
+        on_pan_update=onRotate,
+        on_horizontal_drag_update=onRotate,
+        on_vertical_drag_update=onRotate,
         # on_hover=onHover,
     )
 
     drawArea = ft.Container(
         gd,
-        bgcolor=ft.Colors.BLUE,
+        bgcolor=ft.colors.BLUE,
         width=float("inf"),
         height=float("inf"),
         left=0,
         top=0
     )
-    paint = ft.Paint(
-        color = ft.Colors.RED,
+    paint1 = ft.Paint(
+        color = ft.colors.RED,
         stroke_width=5,
         stroke_cap = ft.StrokeCap.ROUND,
         style=ft.PaintingStyle.STROKE
+    )
+    paint2 = ft.Paint(
+        color = ft.colors.BLUE_100,
+        stroke_width=5,
+        stroke_cap = ft.StrokeCap.ROUND,
+        style=ft.PaintingStyle.FILL,
+        # blend_mode=ft.BlendMode.COLOR_BURN,
     )
 
     hint = ft.AlertDialog(
@@ -120,27 +125,34 @@ def main(page: ft.Page):
     )
 
     shape = [
-        cv.Path(
-            [
-                cv.Path.MoveTo(-size / 2, -size / 2),
-                cv.Path.LineTo(size / 2, -size / 2),
-                cv.Path.LineTo(size / 2, size / 2),
-                cv.Path.LineTo(-size / 2, size / 2),
-                cv.Path.Close(),
-            ],
-            paint=paint,
-        )
+        cv.Rect(
+            x = size / 2,
+            y = size / 2,
+            width = size / 2,
+            height = size / 2,
+            border_radius=5,
+            paint=paint1,
+        ),
+        cv.Oval(
+            x = size / 2,
+            y = size / 2,
+            width = size / 2 * 0.9,
+            height = size / 2 * 0.9,
+            paint = paint2,
+        ),
     ]
 
     threeDBody = cv.Canvas(
         shapes=shape,
     )
 
+    page.window.alignment=ft.alignment.center
     page.window.width = size * 1.2
     page.window.height = size * 1.2
 
     page.add(ft.Stack(
         [threeDBody],
+        alignment=ft.alignment.center
     ),
 
     )
